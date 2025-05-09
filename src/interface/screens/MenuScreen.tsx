@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useGame } from '@/interface/contexts/GameContext';
+import { useGame } from '../contexts/GameContext';
 
 const MenuScreen: React.FC = () => {
   const { state, actions } = useGame();

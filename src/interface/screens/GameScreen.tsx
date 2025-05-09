@@ -1,9 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { useGame } from '@/interface/contexts/GameContext';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useGame } from '../contexts/GameContext';
 
 const GameScreen: React.FC = () => {
   const { state, actions } = useGame();
   const [isPaused, setIsPaused] = useState(false);
+
+  // Toggle pause state - using useCallback to memoize the function
+  const togglePause = useCallback(() => {
+    if (isPaused) {
+      actions.resumeGame();
+    } else {
+      actions.pauseGame();
+    }
+    setIsPaused(!isPaused);
+  }, [isPaused, actions]);
 
   // Set up keyboard handler for pausing the game
   useEffect(() => {
@@ -18,17 +28,7 @@ const GameScreen: React.FC = () => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isPaused]);
-
-  // Toggle pause state
-  const togglePause = () => {
-    if (isPaused) {
-      actions.resumeGame();
-    } else {
-      actions.pauseGame();
-    }
-    setIsPaused(!isPaused);
-  };
+  }, [togglePause]); // Added togglePause as a dependency
 
   // Return to menu
   const handleReturnToMenu = () => {

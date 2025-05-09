@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
-import { GameProvider, useGame } from '@/interface/contexts/GameContext';
-import MenuScreen from '@/interface/screens/MenuScreen';
-import GameScreen from '@/interface/screens/GameScreen';
-import ResultsScreen from '@/interface/screens/ResultsScreen';
-import LoadingOverlay from '@/interface/components/LoadingOverlay';
+import { GameProvider, useGame } from './interface/contexts/GameContext';
+import MenuScreen from './interface/screens/MenuScreen';
+import GameScreen from './interface/screens/GameScreen';
+import ResultsScreen from './interface/screens/ResultsScreen';
+import LoadingOverlay from './interface/components/LoadingOverlay';
 import './App.css';
 
 const AppContent: React.FC = () => {

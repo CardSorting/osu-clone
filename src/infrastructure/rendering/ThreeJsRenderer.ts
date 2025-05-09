@@ -32,39 +32,82 @@ export class ThreeJsRenderer {
   private readonly LAYER_UI = 20;
 
   constructor(container: HTMLElement) {
-    // Initialize clock for timing animations
-    this.clock = new THREE.Clock();
-    
-    // Create scene
-    this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(this.BACKGROUND_COLOR);
-    
-    // Calculate aspect ratio and camera frustum
-    const aspect = container.clientWidth / container.clientHeight;
-    const frustumSize = this.gameHeight;
-    
-    // Create orthographic camera (2D view)
-    this.camera = new THREE.OrthographicCamera(
-      frustumSize * aspect / -2,
-      frustumSize * aspect / 2,
-      frustumSize / 2,
-      frustumSize / -2,
-      1,
-      1000
-    );
-    this.camera.position.z = 100;
-    
-    // Initialize renderer
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    this.renderer.setSize(container.clientWidth, container.clientHeight);
-    this.renderer.setPixelRatio(window.devicePixelRatio);
-    container.appendChild(this.renderer.domElement);
-    
-    // Setup initial scene
-    this.setupScene();
-    
-    // Handle window resize
-    window.addEventListener('resize', () => this.onWindowResize(container));
+    try {
+      // Initialize clock for timing animations
+      this.clock = new THREE.Clock();
+      
+      // Create scene
+      this.scene = new THREE.Scene();
+      this.scene.background = new THREE.Color(this.BACKGROUND_COLOR);
+      
+      // Calculate aspect ratio and camera frustum
+      const aspect = container.clientWidth / container.clientHeight;
+      const frustumSize = this.gameHeight;
+      
+      // Create orthographic camera (2D view)
+      this.camera = new THREE.OrthographicCamera(
+        frustumSize * aspect / -2,
+        frustumSize * aspect / 2,
+        frustumSize / 2,
+        frustumSize / -2,
+        1,
+        1000
+      );
+      this.camera.position.z = 100;
+      
+      // Initialize renderer with WebGL error handling
+      try {
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        this.renderer.setSize(container.clientWidth, container.clientHeight);
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(this.renderer.domElement);
+      } catch (webglError) {
+        console.error("WebGL renderer initialization failed:", webglError);
+        // Create a fallback renderer (simple 2D canvas)
+        const canvas = document.createElement('canvas');
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.backgroundColor = '#111111';
+        container.appendChild(canvas);
+        
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.fillText('WebGL not available - Fallback mode', 10, 20);
+        }
+        
+        // Use a dummy renderer
+        this.renderer = {
+          render: () => {},
+          setSize: () => {},
+          dispose: () => {},
+          domElement: canvas
+        } as unknown as THREE.WebGLRenderer;
+      }
+      
+      // Setup initial scene
+      this.setupScene();
+      
+      // Handle window resize
+      window.addEventListener('resize', () => this.onWindowResize(container));
+    } catch (error) {
+      console.error("Error initializing Three.js renderer:", error);
+      // Create a minimal renderer to prevent further errors
+      this.scene = new THREE.Scene();
+      this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 1000);
+      this.clock = new THREE.Clock();
+      
+      // Create a dummy renderer to prevent errors
+      const canvas = document.createElement('canvas');
+      container.appendChild(canvas);
+      this.renderer = {
+        render: () => {},
+        setSize: () => {},
+        dispose: () => {},
+        domElement: canvas
+      } as unknown as THREE.WebGLRenderer;
+    }
   }
 
   /**

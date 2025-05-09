@@ -1,27 +1,27 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { CommandBus } from '@/application/commands/Command';
-import { QueryBus } from '@/application/queries/Query';
-import { BeatmapRepository } from '@/infrastructure/persistence/BeatmapRepository';
-import { GameSessionRepository } from '@/infrastructure/persistence/GameSessionRepository';
-import { AudioService } from '@/infrastructure/audio/AudioService';
-import { ThreeJsRenderer } from '@/infrastructure/rendering/ThreeJsRenderer';
-import { InputHandler, InputEventType, InputEvent } from '@/infrastructure/input/InputHandler';
+import { CommandBus } from '../../application/commands/Command';
+import { QueryBus } from '../../application/queries/Query';
+import { BeatmapRepository } from '../../infrastructure/persistence/BeatmapRepository';
+import { GameSessionRepository } from '../../infrastructure/persistence/GameSessionRepository';
+import { AudioService } from '../../infrastructure/audio/AudioService';
+import { ThreeJsRenderer } from '../../infrastructure/rendering/ThreeJsRenderer';
+import { InputHandler, InputEventType, InputEvent } from '../../infrastructure/input/InputHandler';
 import { 
   StartGameCommandHandler, 
   ProcessHitCommandHandler,
   PauseGameCommandHandler,
   ResumeGameCommandHandler,
   EndGameCommandHandler
-} from '@/application/commands/GameCommands';
+} from '../../application/commands/GameCommands';
 import {
   GetAvailableBeatmapsQueryHandler,
   GetVisibleHitObjectsQueryHandler,
   GetGameSessionStatsQueryHandler
-} from '@/application/queries/GameQueries';
-import { Beatmap } from '@/domain/entities/Beatmap';
-import { GameSession, GameState } from '@/domain/entities/GameSession';
-import { HitObject } from '@/domain/entities/HitObject';
-import { Vector2, HitResult } from '@/shared/types/game';
+} from '../../application/queries/GameQueries';
+import { Beatmap } from '../../domain/entities/Beatmap';
+import { GameSession, GameState } from '../../domain/entities/GameSession';
+import { HitObject } from '../../domain/entities/HitObject';
+import { Vector2, HitResult } from '../../shared/types/game';
 
 // Context state interface
 interface GameContextState {
@@ -198,23 +198,36 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Start a new game with the selected beatmap
   const startGame = async (beatmapId: string): Promise<void> => {
-    if (!commandBusRef.current || !gameSessionRepositoryRef.current || !audioServiceRef.current) return;
+    if (!commandBusRef.current || !gameSessionRepositoryRef.current || !audioServiceRef.current) {
+      console.error("Required services not initialized");
+      return;
+    }
     
     setState(prev => ({ ...prev, isLoading: true }));
     
     try {
+      console.log(`Starting game with beatmap: ${beatmapId}`);
+      
       // Initialize renderer if game container is available
       if (gameContainerRef.current && !rendererRef.current) {
-        rendererRef.current = new ThreeJsRenderer(gameContainerRef.current);
+        console.log("Initializing renderer");
+        try {
+          rendererRef.current = new ThreeJsRenderer(gameContainerRef.current);
+        } catch (renderError) {
+          console.error("Error initializing renderer:", renderError);
+          // Continue even if renderer fails - we'll just have no visuals
+        }
       }
       
       // Initialize input handler
       if (gameContainerRef.current && !inputHandlerRef.current) {
+        console.log("Initializing input handler");
         inputHandlerRef.current = new InputHandler(gameContainerRef.current);
         inputHandlerRef.current.on(InputEventType.CLICK, handleInputEvent);
       }
       
       // Start a new game session
+      console.log("Creating game session");
       const gameSession = await commandBusRef.current.execute<
         { type: 'START_GAME', beatmapId: string, timestamp: number },
         GameSession
@@ -228,21 +241,32 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       gameSessionRepositoryRef.current.setCurrentSession(gameSession);
       
       // Load audio
+      console.log("Loading audio");
       await audioServiceRef.current.loadAudio(
         beatmapId,
         gameSession.beatmap.metadata.audioFile
       );
       
       // Start renderer and input handler
-      if (rendererRef.current) rendererRef.current.start();
-      if (inputHandlerRef.current) inputHandlerRef.current.enable();
+      if (rendererRef.current) {
+        console.log("Starting renderer");
+        rendererRef.current.start();
+      }
+      
+      if (inputHandlerRef.current) {
+        console.log("Enabling input handler");
+        inputHandlerRef.current.enable();
+      }
       
       // Play audio
+      console.log("Starting audio playback");
       audioServiceRef.current.play(beatmapId);
       
       // Start game loop
+      console.log("Starting game loop");
       startGameLoop();
       
+      console.log("Game started successfully");
       setState(prev => ({
         ...prev,
         currentSession: gameSession,
@@ -254,7 +278,30 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }));
     } catch (error) {
       console.error(`Failed to start game with beatmap ${beatmapId}:`, error);
-      setState(prev => ({ ...prev, isLoading: false }));
+      // Make sure we reset the loading state 
+      setState(prev => ({ 
+        ...prev, 
+        isLoading: false,
+        // Show an alert in the console
+        currentScreen: 'menu'
+      }));
+      
+      // Clean up any resources that may have been created
+      if (rendererRef.current) {
+        rendererRef.current.stop();
+      }
+      
+      if (inputHandlerRef.current) {
+        inputHandlerRef.current.disable();
+      }
+      
+      if (audioServiceRef.current) {
+        try {
+          audioServiceRef.current.stop(beatmapId);
+        } catch (e) {
+          // Ignore errors during cleanup
+        }
+      }
     }
   };
 

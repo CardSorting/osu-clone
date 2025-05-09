@@ -37,7 +37,11 @@ export class AudioService {
       this.audioBuffers.set(id, audioBuffer);
     } catch (error) {
       console.error(`Failed to load audio ${id} from ${url}:`, error);
-      throw new Error(`Failed to load audio ${id}: ${error instanceof Error ? error.message : String(error)}`);
+      // Create a silent buffer instead of throwing
+      const sampleRate = this.audioContext!.sampleRate;
+      const buffer = this.audioContext!.createBuffer(2, sampleRate * 30, sampleRate); // 30 seconds of silence
+      this.audioBuffers.set(id, buffer);
+      console.warn(`Created silent buffer for ${id} as fallback`);
     }
   }
 
@@ -52,9 +56,13 @@ export class AudioService {
       this.initialize();
     }
 
-    const audioBuffer = this.audioBuffers.get(id);
+    let audioBuffer = this.audioBuffers.get(id);
     if (!audioBuffer) {
-      throw new Error(`Audio ${id} not loaded`);
+      console.warn(`Audio ${id} not loaded, creating silent buffer`);
+      // Create a silent buffer as fallback
+      const sampleRate = this.audioContext!.sampleRate;
+      audioBuffer = this.audioContext!.createBuffer(2, sampleRate * 30, sampleRate); // 30 seconds of silence
+      this.audioBuffers.set(id, audioBuffer);
     }
 
     // Stop any existing playback of this audio

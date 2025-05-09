@@ -20,6 +20,14 @@ export abstract class HitObject {
     // Type will be set by subclasses
   }
 
+  /**
+   * Create a clone of this hit object with a new position and/or time
+   * @param newPosition New position for the cloned object
+   * @param newTime New timestamp for the cloned object
+   * @returns A new instance of the hit object
+   */
+  abstract clone(newPosition: Vector2, newTime: number): HitObject;
+
   // Calculate when the object should start appearing on screen
   getApproachTime(): number {
     // Convert AR to milliseconds (AR 5 is 1200ms, AR 10 is 450ms)

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
-import { useGame } from '@/interface/contexts/GameContext';
-import { Grade } from '@/shared/types/game';
+import { useGame } from '../contexts/GameContext';
+import { Grade } from '../../shared/types/game';
 
 const ResultsScreen: React.FC = () => {
   const { state, actions } = useGame();

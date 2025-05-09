@@ -7,6 +7,22 @@ export class HitCircle extends HitObject {
     this.type = HitObjectType.CIRCLE;
   }
 
+  clone(newPosition: Vector2, newTime: number): HitObject {
+    const clonedCircle = new HitCircle(
+      `${this.id}_clone_${Date.now()}`,
+      newPosition,
+      newTime,
+      this.approachRate
+    );
+    
+    // Copy other properties
+    clonedCircle.radius = this.radius;
+    clonedCircle.isHit = this.isHit;
+    clonedCircle.hitTime = this.hitTime;
+    
+    return clonedCircle;
+  }
+
   evaluate(clickTime: number, clickPosition: Vector2): HitResult {
     if (!this.isPointInside(clickPosition)) {
       return {
